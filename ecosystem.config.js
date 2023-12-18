@@ -12,7 +12,7 @@ module.exports = {
 			"watch": ["maintainMarketData.js", "../../manifoldFunctions.js"],
 			"log_date_format": "YYYY-MM-DD HH:mm",
 			"max_memory_restart": "750M",
-			"cwd": "public_html/manifold-search/"
+			"cwd": "public_html/manifold-guesser/"
 		},
 	]
 };

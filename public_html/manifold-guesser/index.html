@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Manifold Guesser</title>
+
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+		<script defer src="/globalResources/globaljs&html.js"></script>
+		<link rel="stylesheet" href="styles.css">
+		<script defer src="compress.js"></script>
+		<script defer src="workerScripts.js"></script>
+		<script defer src="scripts.js"></script>
+		<script>const linkifyCardNames = false;</script>
+
+		<style id="jsStyles"></style>
+		<style>
+			* {
+			  box-sizing: border-box;
+			}
+
+			input[type=checkbox] {
+			  margin-right: 5px;
+			}
+
+			.center {
+				 margin: auto;
+				 width: 65%;
+				 padding: 10px;
+				 height: 100%;
+				 background-color: #0F1729;
+				 border-radius: 5px;
+				 overflow: auto;
+			 }
+
+			.left {
+				float: left;
+			  width: 15%;
+			}
+
+			.right {
+				float: right;
+			  width: 15%;
+			}
+			.column {
+			 float: left;
+			 width: 33.33%;
+			}
+
+
+			.flex-container {
+			  /* We first create a flex layout context */
+			  display: flex;
+
+			  /* Then we define the flow direction
+			     and if we allow the items to wrap
+			   * Remember this is the same as:
+			   * flex-direction: row;
+			   * flex-wrap: wrap;
+			   */
+			  flex-flow: row wrap;
+
+			  /* Then we define how is distributed the remaining space */
+			  justify-content: space-around;
+
+			  padding: 0;
+			  margin: 0;
+			  list-style: none;
+			}
+		</style>
+	</head>
+	<body style="background-color:#0F1729;color:white;height:100%;overflow:auto">
+		<div id="mainDiv">
+			<div class="left">
+				<center>
+						<h3 style="margin:20px">Manifold Guesser</h3>
+						<button id="infoButton" type="button" onclick="info()" class="btn btn-outline-light btn-sm">About</button>
+				</center>
+			</div>
+
+			<div class="right">
+				<div id="visibilityOptions">
+					<br>
+					<span style="font-size:1.25em"> Visibility options</span>
+					<br>
+					<label style="display:none">
+						<input type="checkbox" id="questionVisibility"></input>
+						Question
+					</label>
+					<label>
+						<input type="checkbox" id="descriptionVisibility"></input>
+						Description
+					</label>
+					<br>
+					<label>
+						<input type="checkbox" id="createdTimeVisibility"></input>
+						Creation time
+					</label>
+					<br>
+					<label>
+						<input type="checkbox" id="closeTimeVisibility"></input>
+						Close time
+					</label>
+					<br>
+					<label>
+						<input type="checkbox" id="totalTradersVisibility"></input>
+						Total traders
+					</label>
+					<br>
+					<label>
+						<input type="checkbox" id="lastUpdatedTimeVisibility"></input>
+						Last updated
+					</label>
+					<br>
+					<label>
+						<input type="checkbox" id="timeSpentVisibility"></input>
+						Time spent
+					</label>
+					<br>
+					<label hidden="true">
+						<input type="checkbox" id="marketURLVisibility"></input>
+						Market URL
+					</label>
+					<br>
+					<label hidden="true">
+						<input type="checkbox" id="groupsVisibility"></input>
+						Groups
+					</label>
+					<label>
+						<input type="checkbox" id="creatorVisibility"></input>
+						Creator
+					</label>
+					<br>
+					<label>
+						<input type="checkbox" id="liquidityVisibility"></input>
+						Liquidity
+					</label>
+					<br>
+					<label>
+						<input type="checkbox" id="volumeVisibility"></input>
+						Volume
+					</label>
+					<br>
+					<br>
+					<span style="font-size:1.25em"> Functionalities</span>
+
+					<label>
+						<input type="checkbox" id="bettingVisibility"></input>
+						Enable betting
+					</label>
+					<br>
+
+					<div class="flex-item" style="max-width:70%">
+							<button id="trackButton" type="button" onclick="track()" class="btn btn-info btn-sm btn-block">Track predictions</button>
+							<button id="filterButton" type="button" class="btn btn-secondary btn-sm btn-block" onclick="filter()">Filter markets</button>
+					</div>
+				</div>
+			</div>
+
+
+			<div id="marketTab" class="center">
+				<div id="errorTab" hidden="true">
+					<p> Error! Couldn't retrieve market. (Perhaps no markets pass the filters - change market filters in the settings menu and refresh the page.) </p>
+				</div>
+				<div id="randomMarket">
+					<div class="flex-item" style="max-width:25%;float:right;margin-left:10px">
+						<b><span id="rTime" style="font-size:1.2em"></span></b>
+						<b><span id="streak" style="font-size:1.2em"></span></b>
+						<b><span id="total" style="font-size:1.2em" hidden="true"></span></b>
+					</div>
+					<a style="font-size:1.75em;color:white" id="rTitle"></a>
+					<br>
+					<div id="metadata">
+						<ul class="flex-container">
+						  <li class="flex-item">
+								<i id="rCreated"></i>
+								<br>
+								<i id="rTraders"></i>
+								<br>
+								<i id="rCreator"></i>
+							</li>
+
+						  <li class="flex-item">
+								<i id="rClose"></i>
+								<br>
+								<i id="rLiquidity"></i>
+							</li>
+
+
+							<li class="flex-item">
+								<i id="rUpdated"></i>
+								<br>
+								<i id="rVolume"></i>
+							</li>
+						</ul>
+
+						<a href id="rURL" style="color:white"></a>
+						<br>
+					</div>
+
+
+					<label>Your probability (%):
+						<input id="guess" type="number" class="form-control form-control-lg" min="0" max="100"></input>
+					</label>
+
+					<button id="predict" type="button" onclick="predict()" class="btn btn-primary btn-lg">Predict!</button>
+					<button id="skip" type="button" onclick="newMarket()" class="btn btn-success btn-lg">Skip</button>
+
+					<div id="resultsDiv">
+
+						<div id="bettingDiv">
+							<span id="bettext">Bet?</span>
+							<br>
+
+							<label>Bet size (M):
+								<input id="betsize" type="number" class="form-control form-control-lg" min="1" max="100"></input>
+							</label>
+
+							<label id="apiKeyLabel" style="float:right">API key:
+								<input id="apiKey" type="text" class="form-control form-control-lg"></input>
+							</label>
+
+
+							<label>Bet towards... (%):
+								<input id="betprob" type="number" class="form-control form-control-lg" min="0" max="100"></input>
+							</label>
+							<button id="bet" type="button" onclick="bet()" class="btn btn-danger btn-lg">Bet!</button>
+							<span id="betinfo"></span>
+						</div>
+
+						 <iframe id="iframe" src="" height="300" width="100%" style="border:none" hidden="true" scrolling="no"></iframe>
+					</div>
+					<br><br>
+					<div id="rDescriptionDiv">
+						<p style="font-size:1.3em"> Description: </p>
+						<p id="rDescription"></p>
+					</div>
+
+
+
+				</div>
+			</div>
+		</div>
+
+		<div id="trackTab" style="display:none">
+			<button type="button" class="btn btn-dark btn-lg" onclick="closeTrack()">Close</button>
+
+			<ul class="flex-container">
+				<li class="flex-item">
+					<label>Identifier:
+						<input id="identifier" type="text" class="form-control form-control-lg"></input>
+						<button id="identify" type="button" onclick="identify()" class="btn btn-secondary btn-lg">Continue</button>
+						<p>(Your predictions will be saved under this identifier.)</p>
+						<p id="success" hidden="true">Identified</p>
+					</label>
+				</li>
+
+				<li class="flex-item" style="max-width:60%">
+					<h3>Export predictions</h3>					<button id="exportButton" type="button" onclick="exporting()" class="btn btn-secondary btn-sm">Export</button>
+					<p id="exportSuccess"></p>
+					<p id="exportInfo"></p>
+					<label style="margin-right:5%">Human readable
+						<input id="exportHuman" type="radio" name="exportRadio" onchange="track()" checked></input>
+					</label>
+					<label style="margin-right:5%">Plain text
+						<input id="exportPlain" type="radio" name="exportRadio" onchange="track()"></input>
+					</label>
+					<label>JSON
+						<input id="exportJSON" type="radio" name="exportRadio" onchange="track()"></input>
+					</label>
+					<textarea id="exportData" readonly style="width:100%;min-height:50%"></textarea>
+				</li>
+			</ul>
+		</div>
+
+
+		<div id="filterTab" style="display:none">
+			<button type="button" class="btn btn-dark btn-lg" onclick="document.getElementById('filterTab').style.display = 'none';document.getElementById('mainDiv').style.display='block';">Close</button>
+			<br>
+
+			<ul class="flex-container">
+				<li class="flex-item">
+					<div id="searchCriteria">
+						<h3> Filter markets </h3>
+						<label>Description length:
+							<input id="descriptionLength"></input>
+						</label>
+						<br>
+						<label>Creation time:
+							<input id="createdTime"></input>
+						</label>
+						<br>
+						<label>Close time:
+							<input id="closeTime"></input>
+						</label>
+						<br>
+						<label>Traders count:
+							<input id="totalTraders"></input>
+						</label>
+						<br>
+						<label>Last updated:
+							<input id="lastUpdatedTime"></input>
+						</label>
+						<br>
+
+						<label>Status:
+							<label>
+								<input id="open" type="checkbox"></input>
+								Open
+							</label>
+							<label>
+								<input id="closed" type="checkbox"></input>
+								Closed
+							</label>
+							<label>
+								<input id="resolved" type="checkbox"></input>
+								Resolved
+							</label>
+						</label>
+						<br>
+						<label>Liquidity:
+							<input id="liquidity"></input>
+						</label>
+						<br>
+						<label>Volume:
+							<input id="volume"></input>
+						</label>
+						<br>
+						<label hidden="true">Groups:
+							<input id="groups" list="groupsDatalist"></input>
+							<datalist id="groupsDatalist"></datalist>
+						</label>
+
+						<label style="display:none">Question:
+							<input id="question"></input>
+						</label>
+						<label style="display:none">Description:
+							<input id="description"></input>
+						</label>
+						<label style="display:none">Answers:
+							<input id="answers"></input>
+						</label>
+						<label style="display:none">Any market field:
+							<input id="any"></input>
+						</label>
+
+						<label style="display:none">Creator username:
+							<input id="creator" list="creatorDatalist"></input>
+							<datalist id="creatorDatalist"></datalist>
+						</label>
+						<label style="display:none">Type:
+							<input id="type" list="typeDatalist"></input>
+							<datalist id="typeDatalist"></datalist>
+						</label>
+						<label style="display:none">Number of groups:
+							<input id="numGroups"></input>
+						</label>
+						<label style="display:none">Custom:
+							<input id="custom"></input>
+						</label>
+						<br>
+						<button id="reset"> Reset to default</button>
+						<button id="clear">Clear all</button>
+
+						<p id="loadingIndicator">Loading markets</p>
+						<p id="numResults"></p>
+					</div>
+				</li>
+			</ul>
+		</div>
+
+		<div id="infoTab" style="display:none;max-width:70%;font-size:1.2em">
+			<button type="button" class="btn btn-dark btn-lg" onclick="closeInfo()">Close</button>
+			<p style="font-size:1.5em">About</p>
+			<p>This is a tool for <a href="https://manifold.markets/home">Manifold Markets</a>. The tool provides random markets to make predictions on.</p>
+
+			<p>Central features:
+				<ul>
+					<li>One may make <i><a href="https://en.wikipedia.org/wiki/Anchoring_effect"> unanchored</a></i> predictions</li>
+					<li>Customizable meta-data about market</li>
+					<li>Easy betting after making a prediction*</li>
+					<li>Filtering markets</li>
+					<li>Keeping track of predictions**</li>
+				</ul>
+			</p>
+
+			<p>This tool has been implemented by <a href="https://manifold.markets/Loppukilpailija">Loppukilpailija</a>, copying and building on <a href="https://outsidetheasylum.blog/">Isaac King's</a> code for <a href="https://outsidetheasylum.blog/manifold-search/">Manifold Search</a>.</p>
+
+			<p style="font-size:0.65em">*<i>For making bets, you need to provide an API key for your Manifold account, found at the bottom of <a>https://manifold.markets/profile</a>. Note that anyone with the API key may make trades on your account - in case you don't trust this service, visit the Manifold site for making bets after predicting.</i>
+			<br>
+			**<i>For tracking predictions, you need to provide an identifier. Note that anyone with the identifier can create and export predictions (so consider choosing a unique, private ID). There's no hashing or other security measures, though, so treat your predictions as public. For heavy users it is recommended to export and save a local copy every once in a while.</i><br>
+			<span style="font-size:0.65em"><i>(I take no responsibility for hacked API keys or lost data or whatever, I'm just some guy.)</i></span>
+			</p>
+
+			<p>If you ask "why doesn't the site have this obviously useful feature?", the answer is probably "I didn't think of it or didn't think anyone would actually use it". Send it my way, I'll think of it and maybe even implement it.</p>
+
+			<p><a href="https://manifold.markets/Loppukilpailija?tab=payments&a=100">Thank yous</a> are appreciated :)</p>
+		</div>
+	</body>
+</html>

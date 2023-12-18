@@ -7,9 +7,9 @@ const sleep = async function(ms) {
 
 let readsInPastSecond = [];
 const readsRateLimit = async function() {
-	while (readsInPastSecond.length >= 100) {
-		if (readsInPastSecond.length > 100) {
-			throw new Error("Sent more than 100 reads in past second");
+	while (readsInPastSecond.length >= 1) {
+		if (readsInPastSecond.length > 1) {
+			throw new Error("Sent more than 1 read in past second");
 		}
 		await sleep(50);
 		readsInPastSecond = readsInPastSecond.filter(time => performance.now() - time > 1000);
@@ -33,7 +33,7 @@ const placeBet = async function(amount, marketId, outcome, limitProb, key) {
 	try {
 		await betsRateLimit();
 		const response = await axios.post(
-			'https://manifold.markets/api/v0/bet',
+			'https://api.manifold.markets/v0/bet',
 			{
 				'amount': amount,
 				'outcome': outcome,
@@ -57,7 +57,7 @@ const sellShares = async function(marketId, numShares, key) {
 	try {
 		await betsRateLimit();
 		const response = await axios.post(
-			`https://manifold.markets/api/v0/market/${marketId}/sell`,
+			`https://api.manifold.markets/v0/market/${marketId}/sell`,
 			{
 				'shares': numShares
 			},
@@ -78,7 +78,7 @@ const placeComment = async function(markdown, marketId, key) {
 	try {
 		await readsRateLimit();
 		const response = await axios.post(
-			'https://manifold.markets/api/v0/comment',
+			'https://api.manifold.markets/v0/comment',
 			{
 				'markdown': markdown,
 				'contractId': marketId
@@ -100,7 +100,7 @@ const createMarket = async function(type, question, description, closeTime, perc
 	try {
 		await readsRateLimit();
 		const response = await axios.post(
-			'https://manifold.markets/api/v0/market',
+			'https://api.manifold.markets/v0/market',
 			{
 				'outcomeType': type,
 				'question': question,
@@ -127,8 +127,9 @@ const createMarket = async function(type, question, description, closeTime, perc
 
 const getMarketInfo = async function(marketId) {
 	await readsRateLimit();
+	//console.log("Getting market info... " + performance.now())
 	const response = await axios.get(
-		`https://manifold.markets/api/v0/market/${marketId}`,
+		`https://api.manifold.markets/v0/market?id=${marketId}`,
 		{
 			"headers": {
 				'Content-Type': 'application/json'
@@ -146,7 +147,7 @@ const getMarketPositions = async function(marketId) {
 	try {
 		await readsRateLimit();
 		const response = await axios.get(
-			`https://manifold.markets/api/v0/market/${marketId}/positions`,
+			`https://api.manifold.markets/v0/market/${marketId}/positions`,
 			{
 				headers: {
 					'Content-Type': 'application/json'
@@ -160,10 +161,11 @@ const getMarketPositions = async function(marketId) {
 }
 
 const getMarketIDBySlug = async function(marketSlug) {
+//Nothing here
 	try {
 		await readsRateLimit();
 		const response = await axios.get(
-			`https://manifold.markets/api/v0/slug/${marketSlug}`,
+			`https://api.manifold.markets/v0/slug/${marketSlug}`,
 			{
 				headers: {
 					'Content-Type': 'application/json'
@@ -180,7 +182,7 @@ const resolveMarket = async function(marketId, resolution, key) {
 	try {
 		await readsRateLimit();
 		const response = await axios.post(
-			`https://manifold.markets/api/v0/market/${marketId}/resolve`,
+			`https://api.manifold.markets/v0/market/${marketId}/resolve`,
 			{
 				'outcome': resolution
 			},
@@ -201,7 +203,7 @@ const closeMarket = async function(marketId, closeTime, key) {
 	try {
 		await readsRateLimit();
 		const response = await axios.post(
-			`https://manifold.markets/api/v0/market/${marketId}/close`,
+			`https://api.manifold.markets/v0/market/${marketId}/close`,
 			{
 				'closeTime': closeTime
 			},
@@ -219,13 +221,14 @@ const closeMarket = async function(marketId, closeTime, key) {
 }
 
 const getAllUsers = async function() {
+//Nothing here
 	try {
 		const allUsers = [];
 
 		const getSomeUsers = async function(beforeID) {
 			await readsRateLimit();
 			const response = await axios.get(
-				`https://manifold.markets/api/v0/users?limit=1000${beforeID ? "&before=" + beforeID : ""}`,
+				`https://api.manifold.markets/v0/users?limit=1000${beforeID ? "&before=" + beforeID : ""}`,
 				{
 					headers: {
 						'Content-Type': 'application/json'
@@ -248,9 +251,11 @@ const getAllUsers = async function() {
 }
 
 const getMostRecent1000MarketsBeforeId = async function(beforeId) {
+//Every 2 seconds or so
 	await readsRateLimit();
+	console.log("Getting 1000 markets... " + performance.now())
 	const response = await axios.get(
-		`https://manifold.markets/api/v0/markets?limit=1000${beforeId ? "&before=" + beforeId : ""}`,
+		`https://api.manifold.markets/v0/markets?limit=1000${beforeId ? "&before=" + beforeId : ""}`,
 		{
 			headers: {
 				'Content-Type': 'application/json',
@@ -294,10 +299,11 @@ const getAllMarkets = async function(verbose) {
 }
 
 const getCurrentUser = async function(key) {
+//Nothing here
 	try {
 		await readsRateLimit();
 		const response = await axios.get(
-			`https://manifold.markets/api/v0/me/`,
+			`https://api.manifold.markets/v0/me/`,
 			{
 				headers: {
 					'Content-Type': 'application/json',
@@ -312,10 +318,11 @@ const getCurrentUser = async function(key) {
 }
 
 const getUserById = async function(id) {
+//Nothing here
 	try {
 		await readsRateLimit();
 		const response = await axios.get(
-			`https://manifold.markets/api/v0/user/by-id/${id}`,
+			`https://api.manifold.markets/v0/user/by-id/${id}`,
 			{
 				headers: {
 					'Content-Type': 'application/json'
@@ -329,9 +336,11 @@ const getUserById = async function(id) {
 }
 
 const getMostRecent1000BetsBeforeId = async function(marketId, username, beforeId) {
+//Every 5 seconds
 	await readsRateLimit();
+	console.log("Getting 1000 bets... " + performance.now())
 	const response = await axios.get(
-		`https://manifold.markets/api/v0/bets?limit=1000${marketId ? "&contractId=" + marketId : ""}${username ? "&username=" + username : ""}${beforeId ? "&before=" + beforeId : ""}`,
+		`https://api.manifold.markets/v0/bets?limit=1000${marketId ? "&contractId=" + marketId : ""}${username ? "&username=" + username : ""}${beforeId ? "&before=" + beforeId : ""}`,
 		{
 			headers: {
 				'Content-Type': 'application/json'
