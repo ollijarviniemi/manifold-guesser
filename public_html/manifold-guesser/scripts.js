@@ -2,6 +2,7 @@ const marketLimit = 200;
 const randomSeed = Math.floor(Math.random() * 20);
 let verbose = false;
 let randomMarket;
+let timenow = performance.now()
 
 const currentSettingsToUrl = function() {
 	let params = [];
@@ -135,8 +136,8 @@ const allSettingsData = {
 		"type": "searchOption",
 		"settingId": "descriptionLength",
 		"inputFormat": "numericalRange",
-		"currentValue": "100-1000",
-		"defaultValue": "100-1000",
+		"currentValue": "100-500",
+		"defaultValue": "100-500",
 		"marketProperty": "description.length",
 	},
 
@@ -144,8 +145,8 @@ const allSettingsData = {
 		"type": "searchOption",
 		"settingId": "groups",
 		"inputFormat": "text",
-		"currentValue": "",
-		"defaultValue": "",
+		"currentValue": "-nonpredictive",
+		"defaultValue": "-nonpredictive",
 		"marketProperty": "groups",
 	},
 	"type": {
@@ -311,7 +312,7 @@ const addMarkets = async function() {
 			const markets = pendingMarketsToAdd.splice(0, 500);
 			uiControlFlow("marketsChanged", markets);
 		}
-		await sleep(30);
+		await sleep(1000);
 	}
 }
 
@@ -376,8 +377,6 @@ const uiControlFlow = function(mode, markets) {
 			displayRows();
 		}
 	} else if (mode === "visibilityChanged") {
-
-		document.getElementById("apiKeyLabel").hidden = !allSettingsData.bettingVisibility.currentValue
 		document.getElementById("bettingDiv").hidden = !allSettingsData.bettingVisibility.currentValue
 
 		displayMarket(randomMarket)
@@ -665,16 +664,6 @@ const loadingInterval = setInterval(function() {
 		clearInterval(loadingInterval);
 	}
 }, 200)
-
-const searchFruits = ["Caring kumquat", "Sassy strawberry", "Mysterious mango", "Embarrassed eggplant"];
-const preloadedImages = [];
-for (let fruit of searchFruits) {
-	const image = new Image();
-	image.src = `${fruit.toLowerCase().replace(" ", "-")}.png`;
-	document.body.appendChild(image);
-	image.style.display = "none";
-	preloadedImages.push(image)
-}
 
 let lastRenderHadNoMarkets = false;
 const displayRows = function() {
@@ -1277,7 +1266,7 @@ function displayMarket(market) {
 
 
 	if(allSettingsData.lastUpdatedTimeVisibility.currentValue) {
-		document.getElementById("rUpdated").textContent = "Last updated: " + formatDate(market.lastUpdatedTime)
+		document.getElementById("rUpdated").textContent = "Last activity: " + formatDate(market.lastUpdatedTime)
 	} else {
 		document.getElementById("rUpdated").textContent = ""
 	}
@@ -1318,22 +1307,47 @@ let paused = false;
 let predictionTime;
 let streak = 0;
 let predictionObject = [];
+let timeLimit = Number.MAX_SAFE_INTEGER;
 
 function updateTime() {
 	if(!paused) {
 		timeSpent = performance.now() - lastUpdate
 	}
-	document.getElementById("rTime").textContent = formatSeconds(timeSpent/1000)
+
+	//>20 secs of time: nothing
+	//10-20 secs: red timer
+	//0-10 secs: hurry up!
+
+	let seconds = timeSpent/1000
+	document.getElementById("rTime").textContent = formatSeconds(seconds)
+
+	if(seconds < timeLimit - 20) {
+		document.getElementById("rTime").style.color = "white";
+		document.getElementById("hurryUp").hidden = true
+	} else if (seconds < timeLimit - 10) {
+		document.getElementById("rTime").style.color = "red";
+		document.getElementById("hurryUp").hidden = true
+	} else if (seconds < timeLimit + 1) {
+		document.getElementById("rTime").style.color = "red";
+		document.getElementById("hurryUp").textContent = "Hurry up!";
+		document.getElementById("hurryUp").hidden = false
+	} else {
+		document.getElementById("rTime").style.color = "red";
+		document.getElementById("rTime").textContent = "--:--";
+		document.getElementById("hurryUp").hidden = false
+		document.getElementById("hurryUp").textContent = "Time's up!";
+	}
 }
 
 const questionTimer = setInterval(updateTime, 50)
 
-function newMarket() {
+async function newMarket() {
 	let n = currentMarketArray.length
+	document.getElementById("marketTab").hidden = false;
 	if(n == 0) {
 		document.getElementById("errorTab").hidden = false;
 		document.getElementById("randomMarket").hidden = true;
-		setTimeout(newMarket, 5000)
+		setTimeout(newMarket, 1000)
 	} else {
 
 		randomMarket = currentMarketArray[Math.floor(Math.random()*n)]
@@ -1353,9 +1367,10 @@ function newMarket() {
 
 		lastUpdate = performance.now()
 		paused = false;
-		updateTime()
+		updateTime();
 		uiControlFlow("visibilityChanged");
-		displayMarket(randomMarket)
+		await sleep(1);
+		setFocusToGuess();
 	}
 }
 
@@ -1389,6 +1404,32 @@ function formatProb(p) {
 
 document.getElementById("betsize").value = 10
 
+const getNewMarketSoon = async function() {
+	let copy = randomMarket;
+	document.getElementById("nextMarket").hidden = false;
+	document.getElementById("bettingDiv").hidden = true;
+	for (let i = 5; i >= 1; --i) {
+		if(streak != 10) {
+			document.getElementById("nextMarket").textContent = "New market in " + i + " seconds...";
+		} else {
+			document.getElementById("nextMarket").textContent = "Finishing in " + i + " seconds...";
+		}
+		await sleep(1000);
+		if(randomMarket.id != copy.id) {
+			break;
+		}
+	}
+	document.getElementById("nextMarket").hidden = true;
+	document.getElementById("bettingDiv").hidden = !allSettingsData.bettingVisibility.currentValue;
+	if(randomMarket.id != copy.id) {
+		return;
+	}
+	if(streak == 10) {
+		openTab('secret2')
+	}
+	newMarket();
+}
+
 const predict = function() {
 	if(document.getElementById("guess").value.length != 0 && document.getElementById("guess").value >= 0 && document.getElementById("guess").value <= 100) {
 		paused = true;
@@ -1396,7 +1437,7 @@ const predict = function() {
 		streak += 1
 		document.getElementById("skip").textContent = "Next"
 		if(streak >= 2) {
-			document.getElementById("streak").textContent = "\# predictions =" + streak
+			document.getElementById("streak").textContent = "\# predictions = " + streak
 			document.getElementById("total").textContent = "Total predictions: " + predictionObject.length
 		}
 		document.getElementById("guess").disabled = true
@@ -1404,6 +1445,9 @@ const predict = function() {
 		document.getElementById("resultsDiv").hidden = false
 		document.getElementById("betprob").value = document.getElementById("guess").value
 		document.getElementById("iframe").hidden = false
+		if(timeLimit < Number.MAX_SAFE_INTEGER) {
+			getNewMarketSoon();
+		}
 /*
 		document.getElementById("market").textContent = "Market probability: " + formatProb(randomMarket.probability)
 		document.getElementById("difference").textContent = "Difference in predictions: " + formatProb(Math.abs(document.getElementById("guess").value/100 - randomMarket.probability))
@@ -1483,7 +1527,6 @@ const jsonToUrl = function(obj) {
 const savePrediction = async function(predictionTime) {
 	let p = document.getElementById("guess").value
 	randomId = makeid(12)
-	console.log("here")
 	let prediction = 		{
 		'type': "save",
 		'id': randomId,
@@ -1500,9 +1543,9 @@ const savePrediction = async function(predictionTime) {
 
 const plainText = function(prediction) {
 	if(prediction.bet === undefined) {
-		return prediction.time + " " + prediction.thinking + " " + prediction.pUser + " " + prediction.pMarket + " " + prediction.userId + " no"
+		return prediction.time + " " + prediction.thinking + " " + prediction.pUser + " " + prediction.pMarket + " " + prediction.marketId + " no"
 	} else {
-		return prediction.time + " " + prediction.thinking + " " + prediction.pUser + " " + prediction.pMarket + " " + prediction.userId + " yes " + prediction.bet.betId + " " + prediction.bet.contractId
+		return prediction.time + " " + prediction.thinking + " " + prediction.pUser + " " + prediction.pMarket + " " + prediction.marketId + " yes " + prediction.bet.betId
 	}
 }
 
@@ -1512,14 +1555,14 @@ const humanText = function(prediction) {
 	let thinking = Math.floor(prediction.thinking/1000)
 	let pUser = formatProb(prediction.pUser)
 	let pMarket = formatProb(prediction.pMarket)
-	let userId = prediction.userId
+	let marketId = prediction.marketId
 	let bet
 	if(prediction.bet === undefined) {
 		bet = "no"
 	} else {
 		bet = "yes " + prediction.bet.orderAmount + "M " + formatProb(prediction.bet.limitProb)
 	}
-	return time + " --- " + thinking + "s --- " + pUser + " --- " + pMarket + " --- " + userId + " --- " + bet
+	return time + " --- " + thinking + "s --- " + pUser + " --- " + pMarket + " --- " + marketId + " --- " + bet
 }
 
 var exportDataValue = {"plain": "", "human": "", "json": ""};
@@ -1529,7 +1572,7 @@ const updateExport = function() {
 		document.getElementById("exportInfo").textContent = "Time of prediction (since epoch), thinking time, user prediction, market probability, market id, whether user bet. If user did bet, betId"
 		document.getElementById("exportData").value = exportDataValue.plain;
 	} else if (document.getElementById("exportJSON").checked){
-		document.getElementById("exportInfo").textContent = "Format: table with elements \{\"time\": timeSinceEpoch, \"thinking\": timeSpentThinking, \"pUser\": userPrediction, \"pMarket\": marketProbability, \"id\": marketId, \"bet\": bet \}. Bet is null if user didn't bet."
+		document.getElementById("exportInfo").textContent = "Format: array containing objects \{\"time\": timeSinceEpoch, \"thinking\": timeSpentThinking, \"pUser\": userPrediction, \"pMarket\": marketProbability, \"userId\", userId, \"marketId\": marketId, \"bet\": bet \}. Bet is undefined if user didn't bet."
 		document.getElementById("exportData").value = exportDataValue.json;
 	} else {
 		document.getElementById("exportInfo").textContent = "Date of prediction --- time spent thinking --- user probability --- market probability --- marketId --- did user bet? [--- bet size --- probability bet towards]"
@@ -1578,11 +1621,6 @@ const exporting = async function() {
 	}
 }
 
-const filter = function() {
-	document.getElementById('mainDiv').style.display = "none";
-	document.getElementById('filterTab').style.display = "block";
-}
-
 const identify = function() {
 	userId = document.getElementById("identifier").value
 	if(userId.length != 0) {
@@ -1591,22 +1629,67 @@ const identify = function() {
 	}
 }
 
-const closeTrack = function() {
-	document.getElementById('trackTab').style.display = 'none';
-	document.getElementById('mainDiv').style.display = 'block';
-	document.getElementById('success').hidden=true;
-	document.getElementById("exportSuccess").textContent="";
-}
-
-const info = function() {
-	document.getElementById('infoTab').style.display = 'block';
+const openTab = function(name) {
+	document.getElementById(name + 'Tab').style.display = 'block';
 	document.getElementById('mainDiv').style.display = 'none'
 }
 
-const closeInfo = function() {
-	document.getElementById('infoTab').style.display='none';
+const closeTab = function(name) {
+	document.getElementById(name + 'Tab').style.display='none';
 	document.getElementById('mainDiv').style.display='block';
+	if(name == 'track') {
+		document.getElementById('success').hidden=true;
+		document.getElementById("exportSuccess").textContent="";
+	}
 }
+
+const secret = function(time) {
+	timeLimit = time
+	closeTab('secret')
+	newMarket()
+	streak = 0
+}
+
+const getTab = function() {
+	if(document.getElementById('infoTab').style.display === 'block') {
+		return 'info';
+	} else if (document.getElementById('filterTab').style.display === 'block') {
+		return 'filter';
+	} else if (document.getElementById('trackTab').style.display === 'block') {
+		return 'track';
+	} else if (document.getElementById('secretTab').style.display === 'block') {
+		return 'secret';
+	} else if (document.getElementById('secret2Tab').style.display === 'block') {
+		return 'secret2';
+	} else {
+		return 'main';
+	}
+}
+
+document.onkeydown = function(evt) {
+  evt = evt || window.event;
+  var isEscape = false;
+	var isN = false;
+  if ("key" in evt) {
+      isEscape = (evt.key === "Escape" || evt.key === "Esc");
+			isN = (evt.key === 'n')
+  } else {
+      isEscape = (evt.keyCode === 27);
+			isN = (evt.keyCode === 78);
+  }
+
+  if (isEscape) {
+		let tab = getTab();
+		if(tab != 'main') {
+			closeTab(tab);
+		}
+  } else if (isN) {
+		if(document.getElementById("guess").disabled === true) {
+			newMarket()
+		}
+	}
+};
+
 
 newMarketLoop();
 fetchNetworkMarketsInChunks();

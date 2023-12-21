@@ -127,9 +127,9 @@ const createMarket = async function(type, question, description, closeTime, perc
 
 const getMarketInfo = async function(marketId) {
 	await readsRateLimit();
-	//console.log("Getting market info... " + performance.now())
+	console.log("Getting market info... " + performance.now())
 	const response = await axios.get(
-		`https://api.manifold.markets/v0/market?id=${marketId}`,
+		`https://api.manifold.markets/v0/market/${marketId}`,
 		{
 			"headers": {
 				'Content-Type': 'application/json'

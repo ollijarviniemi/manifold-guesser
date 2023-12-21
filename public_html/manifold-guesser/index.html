@@ -5,12 +5,17 @@
 		<title>Manifold Guesser</title>
 
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-		<script defer src="/globalResources/globaljs&html.js"></script>
-		<link rel="stylesheet" href="styles.css">
 		<script defer src="compress.js"></script>
 		<script defer src="workerScripts.js"></script>
 		<script defer src="scripts.js"></script>
 		<script>const linkifyCardNames = false;</script>
+		<script>
+		function setFocusToGuess(){
+		    document.getElementById("guess").focus();
+				document.getElementById("guess").value = "";
+		}
+		</script>
+
 
 		<style id="jsStyles"></style>
 		<style>
@@ -19,13 +24,15 @@
 			}
 
 			input[type=checkbox] {
-			  margin-right: 5px;
+			  margin-right: 2px;
 			}
 
 			.center {
 				 margin: auto;
-				 width: 65%;
-				 padding: 10px;
+				 min-width: 65%;
+				 padding-right: 20px;
+				 padding-left: 20px;
+				 padding-top: 15px;
 				 height: 100%;
 				 background-color: #0F1729;
 				 border-radius: 5px;
@@ -70,14 +77,14 @@
 	</head>
 	<body style="background-color:#0F1729;color:white;height:100%;overflow:auto">
 		<div id="mainDiv">
-			<div class="left">
+			<div class="left" style="max-width:200px">
 				<center>
 						<h3 style="margin:20px">Manifold Guesser</h3>
-						<button id="infoButton" type="button" onclick="info()" class="btn btn-outline-light btn-sm">About</button>
+						<button id="infoButton" type="button" onclick="openTab('info')" class="btn btn-outline-light btn-sm">About</button>
 				</center>
 			</div>
 
-			<div class="right">
+			<div class="right" style="max-width:200px">
 				<div id="visibilityOptions">
 					<br>
 					<span style="font-size:1.25em"> Visibility options</span>
@@ -108,14 +115,13 @@
 					<br>
 					<label>
 						<input type="checkbox" id="lastUpdatedTimeVisibility"></input>
-						Last updated
+						Last activity
 					</label>
 					<br>
 					<label>
 						<input type="checkbox" id="timeSpentVisibility"></input>
 						Time spent
 					</label>
-					<br>
 					<label hidden="true">
 						<input type="checkbox" id="marketURLVisibility"></input>
 						Market URL
@@ -135,13 +141,13 @@
 						Liquidity
 					</label>
 					<br>
-					<label>
+					<label style="display:none">
 						<input type="checkbox" id="volumeVisibility"></input>
 						Volume
 					</label>
 					<br>
-					<br>
 					<span style="font-size:1.25em"> Functionalities</span>
+					<br>
 
 					<label>
 						<input type="checkbox" id="bettingVisibility"></input>
@@ -149,27 +155,29 @@
 					</label>
 					<br>
 
-					<div class="flex-item" style="max-width:70%">
+					<div class="flex-item" style="max-width:100%;margin-right:30%">
 							<button id="trackButton" type="button" onclick="track()" class="btn btn-info btn-sm btn-block">Track predictions</button>
-							<button id="filterButton" type="button" class="btn btn-secondary btn-sm btn-block" onclick="filter()">Filter markets</button>
+							<button id="filterButton" type="button" class="btn btn-secondary btn-sm btn-block" onclick="openTab('filter')">Filter markets</button>
+							<button id="secretButton" type="button" class="btn btn-dark btn-sm btn-block" onclick="openTab('secret')" hidden="true">Secret button</button>
 					</div>
 				</div>
 			</div>
 
 
-			<div id="marketTab" class="center">
+			<div id="marketTab" class="center" hidden="true" style="font-size:1.15em">
 				<div id="errorTab" hidden="true">
 					<p> Error! Couldn't retrieve market. (Perhaps no markets pass the filters - change market filters in the settings menu and refresh the page.) </p>
 				</div>
 				<div id="randomMarket">
-					<div class="flex-item" style="max-width:25%;float:right;margin-left:10px">
+					<div class="flex-item" style="max-width:25%;min-width:10%;float:right;margin-left:20px">
 						<b><span id="rTime" style="font-size:1.2em"></span></b>
+						<b><span id="hurryUp" style="font-size:1.2em" hidden="true"></span></b>
 						<b><span id="streak" style="font-size:1.2em"></span></b>
 						<b><span id="total" style="font-size:1.2em" hidden="true"></span></b>
 					</div>
 					<a style="font-size:1.75em;color:white" id="rTitle"></a>
 					<br>
-					<div id="metadata">
+					<div id="metadata" style="padding-top:5px">
 						<ul class="flex-container">
 						  <li class="flex-item">
 								<i id="rCreated"></i>
@@ -198,30 +206,28 @@
 					</div>
 
 
-					<label>Your probability (%):
-						<input id="guess" type="number" class="form-control form-control-lg" min="0" max="100"></input>
+					<label>
+						<input id="guess" type="number" class="form-control form-control-lg" min="0" max="100" placeholder="%"></input>
 					</label>
 
 					<button id="predict" type="button" onclick="predict()" class="btn btn-primary btn-lg">Predict!</button>
 					<button id="skip" type="button" onclick="newMarket()" class="btn btn-success btn-lg">Skip</button>
 
 					<div id="resultsDiv">
+						<p id="nextMarket" hidden="true"></p>
+						<div id="bettingDiv" hidden="true">
 
-						<div id="bettingDiv">
-							<span id="bettext">Bet?</span>
-							<br>
-
-							<label>Bet size (M):
-								<input id="betsize" type="number" class="form-control form-control-lg" min="1" max="100"></input>
+							<label><span style="color:#bbbbbb;font-size:0.8em">Bet size (M):</span>
+								<input id="betsize" type="number" class="form-control form-control-lg" min="1" max="100" placeholder="M"></input>
 							</label>
 
-							<label id="apiKeyLabel" style="float:right">API key:
+							<label id="apiKeyLabel" style="float:right"><span style="color:#bbbbbb;font-size:0.8em">API key:</span>
 								<input id="apiKey" type="text" class="form-control form-control-lg"></input>
 							</label>
 
 
-							<label>Bet towards... (%):
-								<input id="betprob" type="number" class="form-control form-control-lg" min="0" max="100"></input>
+							<label><span style="color:#bbbbbb;font-size:0.8em">Bet towards... (%):</span>
+								<input id="betprob" type="number" class="form-control form-control-lg" min="0" max="100" placeholder="%"></input>
 							</label>
 							<button id="bet" type="button" onclick="bet()" class="btn btn-danger btn-lg">Bet!</button>
 							<span id="betinfo"></span>
@@ -241,135 +247,134 @@
 			</div>
 		</div>
 
-		<div id="trackTab" style="display:none">
-			<button type="button" class="btn btn-dark btn-lg" onclick="closeTrack()">Close</button>
+		<div id="trackTab" class="center" style="display:none;max-width:70%;font-size:1.2em;overflow:visible">
+			<button type="button" class="btn btn-dark btn-lg" onclick="closeTab('track')">Close</button>
 
-			<ul class="flex-container">
-				<li class="flex-item">
-					<label>Identifier:
-						<input id="identifier" type="text" class="form-control form-control-lg"></input>
-						<button id="identify" type="button" onclick="identify()" class="btn btn-secondary btn-lg">Continue</button>
-						<p>(Your predictions will be saved under this identifier.)</p>
-						<p id="success" hidden="true">Identified</p>
-					</label>
-				</li>
-
-				<li class="flex-item" style="max-width:60%">
-					<h3>Export predictions</h3>					<button id="exportButton" type="button" onclick="exporting()" class="btn btn-secondary btn-sm">Export</button>
-					<p id="exportSuccess"></p>
-					<p id="exportInfo"></p>
-					<label style="margin-right:5%">Human readable
-						<input id="exportHuman" type="radio" name="exportRadio" onchange="track()" checked></input>
-					</label>
-					<label style="margin-right:5%">Plain text
-						<input id="exportPlain" type="radio" name="exportRadio" onchange="track()"></input>
-					</label>
-					<label>JSON
-						<input id="exportJSON" type="radio" name="exportRadio" onchange="track()"></input>
-					</label>
-					<textarea id="exportData" readonly style="width:100%;min-height:50%"></textarea>
-				</li>
-			</ul>
-		</div>
-
-
-		<div id="filterTab" style="display:none">
-			<button type="button" class="btn btn-dark btn-lg" onclick="document.getElementById('filterTab').style.display = 'none';document.getElementById('mainDiv').style.display='block';">Close</button>
+			<div class="flex-item" style="margin-top:20px">
+				<h3>Identify</h3>
+				<label>
+					<input id="identifier" type="text" class="form-control form-control-lg" style="max-width:200px"></input>
+					<button id="identify" type="button" onclick="identify()" class="btn btn-secondary btn-lg">Continue</button><br>
+					<p>(Your predictions will be saved under this identifier.)</p>
+					<p id="success" hidden="true">Identified</p>
+				</label>
+			</div>
 			<br>
 
-			<ul class="flex-container">
-				<li class="flex-item">
-					<div id="searchCriteria">
-						<h3> Filter markets </h3>
-						<label>Description length:
-							<input id="descriptionLength"></input>
-						</label>
-						<br>
-						<label>Creation time:
-							<input id="createdTime"></input>
-						</label>
-						<br>
-						<label>Close time:
-							<input id="closeTime"></input>
-						</label>
-						<br>
-						<label>Traders count:
-							<input id="totalTraders"></input>
-						</label>
-						<br>
-						<label>Last updated:
-							<input id="lastUpdatedTime"></input>
-						</label>
-						<br>
-
-						<label>Status:
-							<label>
-								<input id="open" type="checkbox"></input>
-								Open
-							</label>
-							<label>
-								<input id="closed" type="checkbox"></input>
-								Closed
-							</label>
-							<label>
-								<input id="resolved" type="checkbox"></input>
-								Resolved
-							</label>
-						</label>
-						<br>
-						<label>Liquidity:
-							<input id="liquidity"></input>
-						</label>
-						<br>
-						<label>Volume:
-							<input id="volume"></input>
-						</label>
-						<br>
-						<label hidden="true">Groups:
-							<input id="groups" list="groupsDatalist"></input>
-							<datalist id="groupsDatalist"></datalist>
-						</label>
-
-						<label style="display:none">Question:
-							<input id="question"></input>
-						</label>
-						<label style="display:none">Description:
-							<input id="description"></input>
-						</label>
-						<label style="display:none">Answers:
-							<input id="answers"></input>
-						</label>
-						<label style="display:none">Any market field:
-							<input id="any"></input>
-						</label>
-
-						<label style="display:none">Creator username:
-							<input id="creator" list="creatorDatalist"></input>
-							<datalist id="creatorDatalist"></datalist>
-						</label>
-						<label style="display:none">Type:
-							<input id="type" list="typeDatalist"></input>
-							<datalist id="typeDatalist"></datalist>
-						</label>
-						<label style="display:none">Number of groups:
-							<input id="numGroups"></input>
-						</label>
-						<label style="display:none">Custom:
-							<input id="custom"></input>
-						</label>
-						<br>
-						<button id="reset"> Reset to default</button>
-						<button id="clear">Clear all</button>
-
-						<p id="loadingIndicator">Loading markets</p>
-						<p id="numResults"></p>
-					</div>
-				</li>
-			</ul>
+			<div class="flex-item">
+				<h3>Export predictions</h3>					<button id="exportButton" type="button" onclick="exporting()" class="btn btn-secondary">Export</button>
+				<p id="exportSuccess"></p>
+				<p id="exportInfo"></p>
+				<label style="margin-right:5%">Human readable
+					<input id="exportHuman" type="radio" name="exportRadio" onchange="track()" checked></input>
+				</label>
+				<label style="margin-right:5%">Plain text
+					<input id="exportPlain" type="radio" name="exportRadio" onchange="track()"></input>
+				</label>
+				<label>JSON
+					<input id="exportJSON" type="radio" name="exportRadio" onchange="track()"></input>
+				</label>
+				<textarea id="exportData" readonly style="width:100%;min-height:200px"></textarea>
+			</div>
 		</div>
 
-		<div id="infoTab" style="display:none;max-width:70%;font-size:1.2em">
-			<button type="button" class="btn btn-dark btn-lg" onclick="closeInfo()">Close</button>
+
+		<div id="filterTab" class="center" style="display:none;max-width:50%;font-size:1.2em">
+			<button type="button" class="btn btn-dark btn-lg" onclick="closeTab('filter')">Close</button>
+
+			<div class="flex-item" style="margin-top:20px">
+				<div id="searchCriteria">
+					<h3> Filter markets </h3>
+					<label>Description length:
+						<input id="descriptionLength"></input>
+					</label>
+					<br>
+					<label>Creation time:
+						<input id="createdTime"></input>
+						<span style="font-size:0.7em">(e.g. 2022/01/01-2022/12/31)</span><br>
+					</label>
+					<br>
+					<label>Close time:
+						<input id="closeTime"></input>
+					</label>
+					<br>
+					<label>Traders count:
+						<input id="totalTraders"></input>
+					</label>
+					<br>
+					<label>Last activity:
+						<input id="lastUpdatedTime"></input>
+					</label>
+					<br>
+
+					<label>Status:
+						<label style="margin-left:20px">
+							<input id="open" type="checkbox"></input>
+							Open
+						</label>
+						<label style="margin-left:20px">
+							<input id="closed" type="checkbox"></input>
+							Closed
+						</label>
+						<label style="margin-left:20px">
+							<input id="resolved" type="checkbox"></input>
+							Resolved
+						</label>
+					</label>
+					<br>
+					<label>Liquidity:
+						<input id="liquidity"></input>
+					</label>
+					<br>
+					<label>Volume:
+						<input id="volume"></input>
+					</label>
+					<br>
+					<label>Groups:
+						<input id="groups" list="groupsDatalist"></input>
+						<datalist id="groupsDatalist"></datalist>
+						<span style="font-size:0.7em">("-name" to exclude, "name" to require)</span><br>
+					</label>
+
+					<label style="display:none">Question:
+						<input id="question"></input>
+					</label>
+					<label style="display:none">Description:
+						<input id="description"></input>
+					</label>
+					<label style="display:none">Answers:
+						<input id="answers"></input>
+					</label>
+					<label style="display:none">Any market field:
+						<input id="any"></input>
+					</label>
+
+					<label style="display:none">Creator username:
+						<input id="creator" list="creatorDatalist"></input>
+						<datalist id="creatorDatalist"></datalist>
+					</label>
+					<label style="display:none">Type:
+						<input id="type" list="typeDatalist"></input>
+						<datalist id="typeDatalist"></datalist>
+					</label>
+					<label style="display:none">Number of groups:
+						<input id="numGroups"></input>
+					</label>
+					<label style="display:none">Custom:
+						<input id="custom"></input>
+					</label>
+					<br>
+					<button id="reset"> Reset to default</button>
+					<button id="clear">Clear all</button>
+
+					<p id="loadingIndicator">Loading markets</p>
+					<p id="numResults"></p>
+				</div>
+			</div>
+		</div>
+
+		<div id="infoTab" class="center" style="display:none;max-width:70%;font-size:1.2em">
+			<button type="button" class="btn btn-dark btn-lg" onclick="closeTab('info')">Close</button>
 			<p style="font-size:1.5em">About</p>
 			<p>This is a tool for <a href="https://manifold.markets/home">Manifold Markets</a>. The tool provides random markets to make predictions on.</p>
 
@@ -395,5 +400,35 @@
 
 			<p><a href="https://manifold.markets/Loppukilpailija?tab=payments&a=100">Thank yous</a> are appreciated :)</p>
 		</div>
+
+
+		<div id="secretTab" class="center" style="display:none;max-width:70%;font-size:1.2em">
+			<button type="button" class="btn btn-dark btn-lg" onclick="closeTab('secret')">Close</button>
+
+			<p style="font-size:1.5em">Secret tab: timed mode!</p>
+
+			<p>
+				Enter a time limit below. The UI will show you a warning once you approach the time limit.
+				<br>
+				You are given <b>10 markets</b>, the next one automatically after a couple of seconds.
+				<br>
+				<b>Remember to identify yourself</b> if you want your predictions to be tracked! <button type="button" class="btn btn-outline-light btn-sm" onclick="closeTab('secret');openTab('info');">To identification</button>
+				<br>
+				You are not forced to make a prediction before the time ends. But of course, not doing that would be cheating, and you wouldn't do that, would you?
+				<br>
+				<br>
+			</p>
+			<center>
+				<button type="button" class="btn btn-primary" onclick="secret(60)">1 minute mode</button>
+				<button type="button" class="btn btn-primary" onclick="secret(180)">3 minute mode</button>
+			</center>
+		</div>
+
+		<div id="secret2Tab" class="center" style="display:none;max-width:70%;font-size:1.2em">
+			<button type="button" class="btn btn-dark btn-lg" onclick="closeTab('secret2');newMarket();timeLimit=Number.MAX_SAFE_INTEGER;">Close</button>
+			<p style="font-size:1.5em">Congratulations on finishing the timed mode!</p>
+
+		</div>
+
 	</body>
 </html>
